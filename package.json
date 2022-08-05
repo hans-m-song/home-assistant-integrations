@@ -1,0 +1,21 @@
+{
+  "name": "zeversolar-monitor",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/hans-m-song/zeversolar-monitor.git",
+  "author": "Hans Song <hans.m.song@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "compile": "tsc",
+    "start": "node dist"
+  },
+  "dependencies": {
+    "axios": "^0.27.2",
+    "dotenv": "^16.0.1",
+    "source-map-support": "^0.5.21",
+    "typescript": "^4.7.4"
+  },
+  "devDependencies": {
+    "@types/node": "^18.6.4"
+  }
+}
