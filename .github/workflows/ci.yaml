@@ -6,8 +6,8 @@ on:
       - master
 
 jobs:
-  check:
-    name: Check
+  build:
+    name: Build
     runs-on: self-hosted
 
     steps:
