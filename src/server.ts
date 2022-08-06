@@ -19,9 +19,6 @@ app.use("*", (req, res) => {
 });
 
 export const listen = () =>
-  app.listen(config.serverPort, config.serverHost, () => {
-    log("server.listen", "started server", {
-      host: config.serverHost,
-      port: config.serverPort,
-    });
+  app.listen(config.serverPort, () => {
+    log("server.listen", "started server", { port: config.serverPort });
   });

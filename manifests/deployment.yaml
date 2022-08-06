@@ -1,8 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zeversolar-monitor
-  namespace: home-assistant
+  name: deployment
 spec:
   selector:
     matchLabels:
@@ -20,3 +19,6 @@ spec:
               value: http://192.168.1.44/home.cgi
             - name: DESTINATION_ENDPOINT
               value: tcp://k8s.axatol.xyz:31883
+          ports:
+            - name: http
+              containerPort: 8000
