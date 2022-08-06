@@ -1,37 +1,24 @@
 import "source-map-support/register";
 import { config } from "./config";
 import { asyncInterval } from "./utils";
-import { pull } from "./pull";
+import { poll } from "./poll";
 import { listen } from "./server";
+import { announce, pushDataPoint } from "./push";
 
 (async () => {
-  let data: any[] = [];
+  await announce();
 
-  listen();
-
-  const [startPull, stopPull] = asyncInterval(async () => {
-    const chunk = await pull(config.sourceEndpoint);
+  const [startPoll, stopPoll] = asyncInterval(async () => {
+    const chunk = await poll(config.sourceEndpoint);
     if (!chunk) {
       return;
     }
-    data.push(chunk);
-  }, config.pullRate);
 
-  // const [startPush, stopPush] = asyncInterval(async () => {
-  //   if (data.length < 1) {
-  //     return;
-  //   }
-  //   push(client, "", JSON.stringify(data));
-  //   // reset data
-  //   data = [];
-  // }, config.pushRate);
+    pushDataPoint(chunk);
+  }, config.pollRate);
 
-  startPull();
-  // startPush();
+  process.on("exit", stopPoll);
 
-  process.on("exit", () => {
-    console.log("stopping runtime");
-    stopPull();
-    // stopPush();
-  });
+  startPoll();
+  listen();
 })();

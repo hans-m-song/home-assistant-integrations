@@ -5,10 +5,10 @@ import { config } from "./config";
  * @param entityType https://www.home-assistant.io/docs/configuration/customizing-devices/#device-class
  */
 export const sensorTopic = (entityType: string, topic: string) =>
-  path.join("home-assistant", entityType, config.mqttNodeId, topic);
+  path.join("homeassistant", entityType, `${config.mqttNodeId}_${topic}`);
 
 export const Topic = Object.freeze({
-  HassStatus: "home-assistant/status",
+  HassStatus: "homeassistant/status",
 
   LastUpdatedConfig: sensorTopic("sensor", "last_updated/config"),
   LastUpdatedState: sensorTopic("sensor", "last_updated/state"),
@@ -23,8 +23,19 @@ export const Topic = Object.freeze({
   StatusState: sensorTopic("binary_sensor", "status/state"),
 });
 
+export type Device = {
+  name: string;
+  identifiers?: string;
+  manufacturer: string;
+  model: string;
+  // TODO
+  sw_version?: string;
+  hw_version?: string;
+};
+
 export type DeviceConfiguration = {
   name: string;
+  unique_id: string;
   state_topic: string;
   /**
    * https://developers.home-assistant.io/docs/core/entity/sensor#available-state-classes
@@ -36,4 +47,5 @@ export type DeviceConfiguration = {
    */
   device_class: string;
   unit_of_measurement?: string;
+  device?: Device;
 };

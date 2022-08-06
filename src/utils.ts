@@ -51,3 +51,6 @@ export const midnight = () => {
   date.setMilliseconds(0);
   return date.toISOString();
 };
+
+export const slug = (seperator: string, ...input: string[]) =>
+  input.map((item) => item.replace(/[^a-zA-Z0-9]/g, "")).join(seperator);

@@ -1,8 +1,8 @@
 import mqtt from "mqtt";
 import { config } from "./config";
-import { DeviceConfiguration, Topic } from "./hass";
-import { DataPoint } from "./pull";
-import { log, midnight } from "./utils";
+import { DeviceConfiguration, Device, Topic } from "./hass";
+import { DataPoint } from "./poll";
+import { log, midnight, slug } from "./utils";
 
 const client = mqtt.connect(config.destinationEndpoint, {
   username: config.mqttUser,
@@ -34,45 +34,65 @@ export const push = async (topic: string, message: string | Buffer) => {
 
 export const pushDataPoint = (point: DataPoint) =>
   Promise.all([
-    push(Topic.LastUpdatedState, JSON.stringify({ value: point.dateTime })),
-    push(Topic.PowerAcState, JSON.stringify({ value: point.pacW })),
-    push(Topic.EnergyTodayState, JSON.stringify({ value: point.eTodayKWh })),
-    push(Topic.StatusState, JSON.stringify({ value: point.status })),
+    push(Topic.LastUpdatedState, point.dateTime),
+    push(Topic.PowerAcState, point.pacW),
+    push(Topic.EnergyTodayState, point.eTodayKWh),
+    push(Topic.StatusState, point.status === "OK" ? "ON" : "OFF"),
   ]);
 
-const discoveryConfig: DeviceConfiguration[] = [
-  {
-    name: "last_updated",
+const device: Device = {
+  identifiers: "zeversolar_inverter_TLC5000",
+  name: "Zeversolar Inverter",
+  manufacturer: "Zeversolar",
+  model: "TLC5000",
+};
+
+const discoveryConfig: Record<string, DeviceConfiguration> = {
+  [Topic.LastUpdatedConfig]: {
+    name: "Solar Last Updated",
+    unique_id: slug("_", config.mqttNodeId, "last_updated"),
     state_topic: Topic.LastUpdatedState,
     device_class: "timestamp",
+    device,
   },
-  {
-    name: "power_ac",
+  [Topic.PowerAcConfig]: {
+    name: "Solar Power AC (W)",
+    unique_id: slug("_", config.mqttNodeId, "power_ac"),
     state_topic: Topic.PowerAcState,
     state_class: "measurement",
     device_class: "power",
     unit_of_measurement: "W",
+    device,
   },
-  {
-    name: "energy_today",
+  [Topic.EnergyTodayConfig]: {
+    name: "Solar Energy Today (kWh)",
+    unique_id: slug("_", config.mqttNodeId, "energy_today"),
     state_topic: Topic.EnergyTodayState,
     state_class: "total_increasing",
     last_reset: midnight(),
     device_class: "energy",
     unit_of_measurement: "kWh",
+    device,
   },
-  {
-    name: "status",
+  [Topic.StatusConfig]: {
+    name: "Solar Status",
+    unique_id: slug("_", config.mqttNodeId, "status"),
     state_topic: Topic.StatusState,
     device_class: "power",
+    device: device,
   },
-];
+};
 
 export const announce = () =>
   Promise.all(
-    discoveryConfig.map((config) =>
-      push(config.state_topic, JSON.stringify(config))
+    Object.entries(discoveryConfig).map(([topic, config]) =>
+      push(topic, JSON.stringify(config))
     )
+  );
+
+export const denounce = () =>
+  Promise.all(
+    Object.entries(discoveryConfig).map(([topic]) => push(topic, ""))
   );
 
 client.on("connect", (packet) => log("mqtt.client.connect", { packet }));

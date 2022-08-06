@@ -35,12 +35,12 @@ const parse = (raw: string) => {
     serialNumber,
     pacW,
     eTodayKWh: normaliseDecimal(eTodayKWh),
-    status: status === "OK" ? "ON" : "OFF",
+    status,
     fields,
   };
 };
 
-export const pull = async (endpoint: string): Promise<DataPoint | null> => {
+export const poll = async (endpoint: string): Promise<DataPoint | null> => {
   try {
     const response = await axios.get(endpoint, { timeout: 5000 });
     const { status, statusText, data: raw } = response;

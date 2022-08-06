@@ -30,8 +30,7 @@ export const config = Object.freeze({
   mqttUser: process.env.MQTT_USER,
   mqttPass: process.env.MQTT_PASS,
   serverPort: numberEnv("SERVER_PORT", 8000),
-  pullRate: numberEnv("PULL_RATE", 5000),
-  pushRate: numberEnv("PUSH_RATE", 5000),
+  pollRate: numberEnv("POLL_RATE", 5000),
 });
 
 log("config", config);

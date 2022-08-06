@@ -24,5 +24,4 @@ Environment variables:
 - `MQTT_USER`: mqtt user
 - `MQTT_PASS`: mqtt pass
 - `SERVER_PORT`: server stub listening port (default: `8000`)
-- `PULL_RATE`: delay between pull attempts in milliseconds (default: `5000`)
-- `PUSH_RATE`: delay between push attempts in milliseconds (default: `5000`)
+- `POLL_RATE`: delay between poll attempts in milliseconds (default: `5000`)
