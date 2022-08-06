@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zeversolar-monitor
+  namespace: home-assistant
+spec:
+  selector:
+    matchLabels:
+      app: zeversolar-monitor
+  template:
+    metadata:
+      labels:
+        app: zeversolar-monitor
+    spec:
+      containers:
+        - name: zeversolar-monitor
+          image: public.ecr.aws/axatol/zeversolar-monitor:latest

@@ -1,18 +1,15 @@
+import axios from "axios";
+
 export const sleep = (timeout: number) =>
   new Promise((resolve) => setTimeout(resolve, timeout));
 
 export const asyncInterval = (fn: () => Promise<void>, minDelay: number) => {
-  console.log("beginning asyncInterval", minDelay);
-
   let next = true;
   const stop = () => {
-    console.log("stopping asyncInterval");
     next = false;
   };
 
   const iterate = async () => {
-    console.log("beginning iteration");
-
     const now = Date.now();
     await fn();
     const duration = Date.now() - now;
@@ -32,5 +29,25 @@ export const asyncInterval = (fn: () => Promise<void>, minDelay: number) => {
 
 export const unpackError = (error: any) => {
   const { code, name, message } = error ?? {};
-  return { code, name, message };
+  const req = axios.isAxiosError(error) && {
+    status: error.response?.status,
+    statusText: error.response?.statusText,
+    data: error.response?.data,
+  };
+  return { ...req, code, name, message };
+};
+
+export const log = (namespace: string, ...args: any[]) =>
+  console.log(
+    `[${namespace}]`,
+    ...args.map((item) => (item instanceof Error ? unpackError(item) : item))
+  );
+
+export const midnight = () => {
+  const date = new Date();
+  date.setHours(0);
+  date.setMinutes(0);
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+  return date.toISOString();
 };
