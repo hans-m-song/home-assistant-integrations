@@ -1,4 +1,5 @@
 import axios from "axios";
+import { inspect } from "util";
 
 export const sleep = (timeout: number) =>
   new Promise((resolve) => setTimeout(resolve, timeout));
@@ -40,7 +41,9 @@ export const unpackError = (error: any) => {
 export const log = (namespace: string, ...args: any[]) =>
   console.log(
     `[${namespace}]`,
-    ...args.map((item) => (item instanceof Error ? unpackError(item) : item))
+    ...args
+      .map((item) => (item instanceof Error ? unpackError(item) : item))
+      .map((item) => inspect(item, { breakLength: Infinity, compact: true }))
   );
 
 export const midnight = () => {
