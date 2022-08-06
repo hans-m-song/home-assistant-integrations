@@ -15,3 +15,8 @@ spec:
       containers:
         - name: zeversolar-monitor
           image: public.ecr.aws/axatol/zeversolar-monitor:latest
+          env:
+            - name: SOURCE_ENDPOINT
+              value: http://192.168.1.44/home.cgi
+            - name: DESTINATION_ENDPOINT
+              value: tcp://k8s.axatol.xyz:31883

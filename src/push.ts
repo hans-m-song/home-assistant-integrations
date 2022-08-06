@@ -68,6 +68,13 @@ const discoveryConfig: DeviceConfiguration[] = [
   },
 ];
 
+export const announce = () =>
+  Promise.all(
+    discoveryConfig.map((config) =>
+      push(config.state_topic, JSON.stringify(config))
+    )
+  );
+
 client.on("connect", (packet) => log("mqtt.client.connect", { packet }));
 client.on("reconnect", () => log("mqtt.client.reconnect"));
 client.on("close", () => log("mqtt.client.close"));
@@ -80,9 +87,7 @@ client.on("message", (topic, payload, _packet) => {
     case Topic.HassStatus:
       if (payload.toString() === "online") {
         log("mqtt.client.message", "sending configuration", { topic });
-        discoveryConfig.forEach((config) =>
-          push(config.state_topic, JSON.stringify(config))
-        );
+        announce();
       }
       break;
 
