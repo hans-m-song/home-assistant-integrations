@@ -26,7 +26,7 @@ const parseTimestamp = (input: string): string | null => {
 
   const minute = Number(groups.minute) - 1;
   const hour = Number(groups.hour) - 1;
-  const day = Number(groups.day) - 1;
+  const day = Number(groups.day);
   const month = Number(groups.month) - 1;
   const year = Number(groups.year);
 
