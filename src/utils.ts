@@ -57,3 +57,6 @@ export const midnight = () => {
 
 export const slug = (seperator: string, ...input: string[]) =>
   input.map((item) => item.replace(/[^a-zA-Z0-9]/g, "")).join(seperator);
+
+export const clamp = (value: number, max: number, min = 0) =>
+  Math.min(max, Math.max(min, value));
