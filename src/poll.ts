@@ -24,8 +24,8 @@ const parseTimestamp = (input: string): string | null => {
     return null;
   }
 
-  const minute = Number(groups.minute) - 1;
-  const hour = Number(groups.hour) - 1;
+  const minute = Number(groups.minute);
+  const hour = Number(groups.hour);
   const day = Number(groups.day);
   const month = Number(groups.month) - 1;
   const year = Number(groups.year);
