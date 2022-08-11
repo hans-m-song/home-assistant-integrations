@@ -1,7 +1,5 @@
 namespace: home-assistant
 
-namePrefix: zeversolar-monitor-
-
 resources:
   - deployment.yaml
   - service.yaml
