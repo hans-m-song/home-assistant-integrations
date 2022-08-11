@@ -21,7 +21,7 @@ jobs:
 
       - name: Build image
         env:
-          IMAGE: public.ecr.aws/axatol/zeversolar-monitor:latest
+          IMAGE: public.ecr.aws/axatol/home-assistant-integrations:latest
           AWS_ACCESS_KEY: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
         run: |
@@ -39,4 +39,4 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
-          repository-name: zeversolar-monitor
+          repository-name: home-assistant-integrations
