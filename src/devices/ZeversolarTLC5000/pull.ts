@@ -1,5 +1,5 @@
 import axios from "axios";
-import { log } from "./utils";
+import { log } from "../../lib/utils";
 
 const normaliseDecimal = (input: string) => {
   const [integer, fractional] = input.split(".");
@@ -20,7 +20,7 @@ const parseTimestamp = (input: string): string | null => {
     !groups?.month ||
     !groups?.year
   ) {
-    log("poll.warn", "could not parse timestamp", { input, groups });
+    log("zeversolar.poll.warn", "could not parse timestamp", { input, groups });
     return null;
   }
 
@@ -37,7 +37,7 @@ export type DataPoint = ReturnType<typeof parse>;
 const parse = (raw: string) => {
   const fields = raw.trim().split(/\r?\n/g);
   if (fields.length !== 14) {
-    log("poll.warn", "data was in an unexpected format", { raw });
+    log("zeversolar.poll.warn", "data was in an unexpected format", { raw });
   }
 
   const [
@@ -71,15 +71,15 @@ const parse = (raw: string) => {
   };
 };
 
-export const poll = async (endpoint: string): Promise<DataPoint | null> => {
+export const pull = async (endpoint: string): Promise<DataPoint | null> => {
   try {
     const response = await axios.get(endpoint, { timeout: 5000 });
     const { status, data: raw } = response;
     const data = parse(raw);
-    log("poll.success", { status, data });
+    log("zeversolar.poll.success", { status, data });
     return data;
   } catch (error) {
-    log("poll.error", error);
+    log("zeversolar.poll.error", error);
     return null;
   }
 };

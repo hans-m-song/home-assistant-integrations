@@ -1,8 +1,8 @@
 {
-  "name": "zeversolar-monitor",
+  "name": "home-assistant-integrations",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "https://github.com/hans-m-song/zeversolar-monitor.git",
+  "repository": "https://github.com/hans-m-song/home-assistant-integrations.git",
   "author": "Hans Song <hans.m.song@gmail.com>",
   "license": "MIT",
   "scripts": {

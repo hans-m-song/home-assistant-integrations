@@ -1,24 +1,27 @@
 import "source-map-support/register";
 import { config } from "./config";
-import { asyncInterval } from "./utils";
-import { poll } from "./poll";
-import { listen } from "./server";
-import { announce, pushDataPoint } from "./push";
+import { HTTP } from "./lib/http";
+import { MQTT } from "./lib/mqtt";
+import { DeviceContext, DeviceManager } from "./lib/device";
+import { ZeversolarTLC5000 } from "./devices/ZeversolarTLC5000";
+import { HuaweiHG659 } from "./devices/HuaweiHG659";
+import { HomeAssistant } from "./devices/HomeAssistant";
 
 (async () => {
-  await announce();
+  const context: DeviceContext = { mqtt: MQTT, http: HTTP };
+  context.http.listen(config.http.port);
 
-  const [startPoll, stopPoll] = asyncInterval(async () => {
-    const chunk = await poll(config.sourceEndpoint);
-    if (!chunk) {
-      return;
-    }
+  const manager = new DeviceManager(context);
+  manager.add(new HomeAssistant(context, manager));
 
-    pushDataPoint(chunk);
-  }, config.pollRate);
+  if (config.huawei.hg659.endpoint) {
+    manager.add(new HuaweiHG659(context));
+  }
 
-  process.on("exit", stopPoll);
+  if (config.zeversolar.tlc5000.endpoint) {
+    manager.add(new ZeversolarTLC5000(context));
+  }
 
-  startPoll();
-  listen();
+  await manager.announce();
+  process.on("exit", manager.shutdown);
 })();

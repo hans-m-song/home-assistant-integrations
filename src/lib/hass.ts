@@ -1,4 +1,4 @@
-export type Device = {
+export type DeviceInformation = {
   name: string;
   identifiers?: string;
   manufacturer: string;
@@ -21,7 +21,11 @@ export type EntityConfiguration = {
   /**
    * https://developers.home-assistant.io/docs/core/entity/sensor#available-device-classes
    */
-  device_class: string;
+  device_class?: string;
   unit_of_measurement?: string;
-  device?: Device;
+  device?: DeviceInformation;
 };
+
+export const topics = Object.freeze({
+  HASS_STATUS: "homeassistant/status",
+});

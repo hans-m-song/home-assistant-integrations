@@ -4,7 +4,7 @@ metadata:
   name: service
 spec:
   selector:
-    app: zeversolar-monitor
+    app: home-assistant-integrations
   ports:
     - name: http
       port: 8000

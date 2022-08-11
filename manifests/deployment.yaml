@@ -5,19 +5,21 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: zeversolar-monitor
+      app: home-assistant-integrations
   template:
     metadata:
       labels:
-        app: zeversolar-monitor
+        app: home-assistant-integrations
     spec:
       containers:
-        - name: zeversolar-monitor
-          image: public.ecr.aws/axatol/zeversolar-monitor:latest
+        - name: home-assistant-integrations
+          image: public.ecr.aws/axatol/home-assistant-integrations:latest
           env:
-            - name: SOURCE_ENDPOINT
+            - name: ZEVERSOLAR_TLC5000_ENDPOINT
               value: http://192.168.1.44/home.cgi
-            - name: DESTINATION_ENDPOINT
+            - name: HUAWEI_HG659_ENDPOINT
+              value: http://192.168.1.1
+            - name: MQTT_ENDPOINT
               value: tcp://k8s.axatol.xyz:31883
           ports:
             - name: http
