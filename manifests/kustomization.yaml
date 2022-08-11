@@ -1,5 +1,7 @@
 namespace: home-assistant
 
+namePrefix: integrations-
+
 resources:
   - deployment.yaml
   - service.yaml
