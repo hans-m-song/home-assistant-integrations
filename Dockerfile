@@ -1,7 +1,7 @@
 FROM node:16-bullseye
 
-RUN sudo apt update \
-  && sudo apt install -y \
+RUN apt update \
+  && apt install -y \
   ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
