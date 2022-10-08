@@ -25,7 +25,3 @@ export type EntityConfiguration = {
   unit_of_measurement?: string;
   device?: DeviceInformation;
 };
-
-export const topics = Object.freeze({
-  HASS_STATUS: "homeassistant/status",
-});

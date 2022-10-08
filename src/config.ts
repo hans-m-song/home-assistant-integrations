@@ -40,6 +40,7 @@ export const config = Object.freeze({
     endpoint: assertEnv("MQTT_ENDPOINT"),
     user: process.env.MQTT_USER,
     pass: process.env.MQTT_PASS,
+    announceRate: clampPollValue(numberEnv("MQTT_ANNOUNCE_RATE", 60000)),
   },
 
   http: {
