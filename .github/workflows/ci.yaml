@@ -22,19 +22,11 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
 
-      - name: Login to Amazon ECR Public
-        id: login-ecr-public
-        uses: aws-actions/amazon-ecr-login@v1
+      - uses: aws-actions/amazon-ecr-login@v1
         with:
           registry-type: public
 
-      - uses: axatol/actions/build-push@release
+      - uses: axatol/actions/docker-build-push@release
         with:
           registry: public.ecr.aws/axatol
           repository: home-assistant-integrations
-
-      - uses: axatol/actions/prune-ecr-repository@release
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
-          repository-name: home-assistant-integrations
