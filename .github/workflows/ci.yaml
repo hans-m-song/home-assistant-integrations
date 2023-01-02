@@ -28,5 +28,4 @@ jobs:
 
       - uses: axatol/actions/docker-build-push@release
         with:
-          registry: public.ecr.aws/axatol
-          repository: home-assistant-integrations
+          image: public.ecr.aws/axatol/home-assistant-integrations
