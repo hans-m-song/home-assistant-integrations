@@ -21,7 +21,7 @@ export const asyncInterval = (fn: () => Promise<void>, minDelay: number) => {
     }
 
     if (next) {
-      await iterate();
+      setImmediate(iterate);
     }
   };
 
