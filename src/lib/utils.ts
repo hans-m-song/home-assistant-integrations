@@ -1,5 +1,6 @@
 import axios from "axios";
 import { inspect } from "util";
+import { config } from "../config";
 
 export const sleep = (timeout: number) =>
   new Promise((resolve) => setTimeout(resolve, timeout));
@@ -38,13 +39,21 @@ export const unpackError = (error: any) => {
   return { ...req, code, name, message };
 };
 
-export const log = (namespace: string, ...args: any[]) =>
-  console.log(
-    `[${namespace}]`,
-    ...args
-      .map((item) => (item instanceof Error ? unpackError(item) : item))
-      .map((item) => inspect(item, { breakLength: Infinity, compact: true }))
-  );
+export const log = (namespace: string, data?: unknown, metadata?: unknown) => {
+  const unpacked = data instanceof Error ? unpackError(data) : data;
+
+  if (config.debug) {
+    const fields = [`[${namespace}]`];
+    unpacked &&
+      fields.push(inspect(unpacked, { breakLength: Infinity, compact: true }));
+    metadata &&
+      fields.push(inspect(metadata, { breakLength: Infinity, compact: true }));
+
+    console.log(...fields);
+  } else {
+    console.log(JSON.stringify({ namespace, data, metadata }));
+  }
+};
 
 export const midnight = () => {
   const date = new Date();

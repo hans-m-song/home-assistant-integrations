@@ -22,6 +22,8 @@ const numberEnv = (key: string, defaultValue: number) => {
 const clampPollValue = (value: number) => clamp(value, Infinity, 1000);
 
 export const config = Object.freeze({
+  debug: process.env.DEBUG === "true",
+
   zeversolar: {
     tlc5000: {
       endpoint: process.env.ZEVERSOLAR_TLC5000_ENDPOINT ?? "",

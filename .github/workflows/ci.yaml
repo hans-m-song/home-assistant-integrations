@@ -6,7 +6,7 @@ on:
       - master
 
 env:
-  IMAGE: public.ecr.aws/axatol/home-assistant-integrations
+  image: public.ecr.aws/axatol/home-assistant-integrations
 
 jobs:
   build:
@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: aws-actions/configure-aws-credentials@v1
+      - uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: us-east-1
           aws-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
@@ -28,4 +28,8 @@ jobs:
 
       - uses: axatol/actions/docker-build-push@release
         with:
-          image: public.ecr.aws/axatol/home-assistant-integrations
+          image: ${{ env.image }}
+
+      - uses: axatol/actions/prune-ecr-repository@release
+        with:
+          repository-name: ${{ env.image }}

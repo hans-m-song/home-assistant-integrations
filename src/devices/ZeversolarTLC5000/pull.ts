@@ -79,7 +79,10 @@ export const pull = async (endpoint: string): Promise<DataPoint | null> => {
     log("zeversolar.poll.success", { status, data });
     return data;
   } catch (error) {
-    log("zeversolar.poll.error", error);
+    if ((error as any)?.code !== "EHOSTUNREACH") {
+      log("zeversolar.poll.error", error);
+    }
+
     return null;
   }
 };
