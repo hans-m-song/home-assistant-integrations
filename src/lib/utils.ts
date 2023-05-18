@@ -39,6 +39,14 @@ export const unpackError = (error: any) => {
   return { ...req, code, name, message };
 };
 
+export const verbose = (...parameters: Parameters<typeof log>) => {
+  if (!config.verbose) {
+    return;
+  }
+
+  log(...parameters);
+};
+
 export const log = (namespace: string, data?: unknown, metadata?: unknown) => {
   const unpacked = data instanceof Error ? unpackError(data) : data;
 

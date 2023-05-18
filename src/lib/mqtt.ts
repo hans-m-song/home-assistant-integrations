@@ -1,6 +1,6 @@
 import mqtt from "mqtt";
 import { config } from "../config";
-import { log } from "./utils";
+import { log, verbose } from "./utils";
 
 const client = mqtt.connect(config.mqtt.endpoint, {
   username: config.mqtt.user,
@@ -57,7 +57,7 @@ const subscribe = async (
 };
 
 const push = async (topic: string, message: string | Buffer) => {
-  log("mqtt.push", { topic, message });
+  verbose("mqtt.push", { topic, message });
 
   return new Promise<mqtt.Packet | undefined>((resolve) => {
     client.publish(topic, message, (error, packet) => {

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { log } from "../../lib/utils";
+import { log, verbose } from "../../lib/utils";
 
 const normaliseDecimal = (input: string) => {
   const [integer, fractional] = input.split(".");
@@ -76,10 +76,10 @@ export const pull = async (endpoint: string): Promise<DataPoint | null> => {
     const response = await axios.get(endpoint, { timeout: 5000 });
     const { status, data: raw } = response;
     const data = parse(raw);
-    log("zeversolar.poll.success", { status, data });
+    verbose("zeversolar.poll.success", { status, data });
     return data;
-  } catch (error) {
-    if ((error as any)?.code !== "EHOSTUNREACH") {
+  } catch (error: any) {
+    if (error?.code !== "EHOSTUNREACH") {
       log("zeversolar.poll.error", error);
     }
 

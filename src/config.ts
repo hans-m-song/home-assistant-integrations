@@ -23,6 +23,7 @@ const clampPollValue = (value: number) => clamp(value, Infinity, 1000);
 
 export const config = Object.freeze({
   debug: process.env.DEBUG === "true",
+  verbose: process.env.VERBOSE === "true",
 
   zeversolar: {
     tlc5000: {
