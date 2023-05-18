@@ -13,6 +13,10 @@ jobs:
     name: Build
     runs-on: self-hosted
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - uses: actions/checkout@v3
 
@@ -20,7 +24,7 @@ jobs:
         with:
           aws-region: us-east-1
           role-to-assume: ${{ secrets.AWS_ECR_IMAGE_PUBLISHER_ROLE_ARN }}
-          role-session-name: ${{ github.triggering_actor }}-home-assistant-integrations-${{ github.job }}-${{ github.run_id }}
+          role-session-name: ${{ github.triggering_actor }}-${{ github.event.repository.name }}-${{ github.job }}-${{ github.run_id }}
           role-skip-session-tagging: true
           role-duration-seconds: 3600
 
