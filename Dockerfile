@@ -1,4 +1,4 @@
-FROM node:16-bullseye
+FROM node:18-bullseye
 
 RUN apt update \
   && apt install -y \
@@ -6,8 +6,8 @@ RUN apt update \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY package.json yarn.lock tsconfig.json ./
-RUN yarn install
+COPY package.json package-lock.json tsconfig.json ./
+RUN npm install
 COPY src src
-RUN yarn compile
+RUN npm run compile
 CMD [ "node", "dist" ]

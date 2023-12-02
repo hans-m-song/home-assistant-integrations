@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - master
+    paths:
+      - .github/workflows/ci.yaml
+      - "manifests/**"
+      - "src/**"
+      - package.json
+      - yarn.lock
 
 env:
   image: public.ecr.aws/axatol/home-assistant-integrations
@@ -20,13 +26,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      - uses: axatol/actions/assume-aws-role@release
         with:
           aws-region: us-east-1
           role-to-assume: ${{ secrets.AWS_ECR_IMAGE_PUBLISHER_ROLE_ARN }}
-          role-session-name: ${{ github.triggering_actor }}-${{ github.event.repository.name }}-${{ github.job }}-${{ github.run_id }}
-          role-skip-session-tagging: true
-          role-duration-seconds: 3600
 
       - uses: aws-actions/amazon-ecr-login@v1
         with:

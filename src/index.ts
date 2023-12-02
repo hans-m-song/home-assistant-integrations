@@ -23,5 +23,5 @@ import { HomeAssistant } from "./devices/HomeAssistant";
   }
 
   await manager.announce();
-  process.on("exit", manager.shutdown);
+  process.on("beforeExit", manager.shutdown);
 })();
