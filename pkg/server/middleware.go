@@ -52,3 +52,12 @@ func (le requestLogEntry) Panic(v any, stack []byte) {
 		Stack().
 		Send()
 }
+
+func middlewareContentType(contentType string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Header.Set("Content-Type", contentType)
+			next.ServeHTTP(w, r)
+		})
+	}
+}

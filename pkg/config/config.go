@@ -1,77 +1,53 @@
 package config
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
+	"github.com/codingconcepts/env"
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/yaml.v3"
 )
 
 var (
-	BuildCommit = "unknown"
-	BuildTime   = "unknown"
+	BuildCommit  = "unknown"
+	BuildTime    = "unknown"
+	BuildVersion = "unknown"
 
-	LogLevel       string
-	LogFormat      string
-	ConfigFilename string
-	ListenPort     int
-	MQTTURI        string
-
-	ProviderConfig = map[string]map[string]any{}
+	Values = struct {
+		LogLevel   string `env:"LOG_LEVEL" default:"info"`
+		LogFormat  string `env:"LOG_FORMAT" default:"json"`
+		ListenPort int    `env:"LISTEN_PORT" default:"8080"`
+		MQTTURI    string `env:"MQTT_URI" required:"true"`
+	}{}
 )
 
 func Configure() {
-	flag.StringVar(&LogLevel, "log-level", "info", "log level")
-	flag.StringVar(&LogFormat, "log-format", "text", "log format, one of 'json', 'text'")
-	flag.StringVar(&ConfigFilename, "config", "", "config file")
-	flag.IntVar(&ListenPort, "listen-port", 8080, "listen port")
-	flag.StringVar(&MQTTURI, "mqtt-uri", "", "MQTT URI")
-	flag.Parse()
-
-	raw, err := os.ReadFile(ConfigFilename)
-	if err != nil {
-		panic(fmt.Errorf("failed to read config file: %s", err))
+	if err := godotenv.Load(); err != nil {
+		log.Debug().Err(fmt.Errorf("failed to load .env file: %s", err)).Send()
 	}
 
-	if err := yaml.Unmarshal(raw, &ProviderConfig); err != nil {
-		panic(fmt.Errorf("failed to unmarshal config file: %s", err))
+	if err := env.Set(&Values); err != nil {
+		panic(fmt.Errorf("failed to set env values: %s", err))
 	}
 
-	logLevel, err := zerolog.ParseLevel(LogLevel)
+	logLevel, err := zerolog.ParseLevel(Values.LogLevel)
 	if err != nil {
 		panic(fmt.Errorf("failed to parse log level: %s", err))
 	}
 
 	zerolog.SetGlobalLevel(logLevel)
 
-	switch LogFormat {
+	switch Values.LogFormat {
 	case "text":
-		log.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout})
+		log.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).
+			With().Timestamp().Stack().Caller().Logger()
 	case "json":
-		// use default logger
+		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+		log.Logger = log.Logger.
+			With().Stack().Caller().Logger()
 	default:
-		panic(fmt.Errorf("unknown log format: %s", LogFormat))
-	}
-
-	log.Logger = log.Logger.With().Timestamp().Stack().Caller().Logger()
-}
-
-func Values() map[string]any {
-	providers := []string{}
-	for name := range ProviderConfig {
-		providers = append(providers, name)
-	}
-
-	return map[string]any{
-		"build_commit":    BuildCommit,
-		"build_time":      BuildTime,
-		"log_level":       LogLevel,
-		"log_format":      LogFormat,
-		"config_filename": ConfigFilename,
-		"mqtt_uri":        MQTTURI,
-		"providers":       providers,
+		panic(fmt.Errorf("unknown log format: %s", Values.LogFormat))
 	}
 }

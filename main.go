@@ -6,10 +6,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
-	"syscall"
 	"time"
 
+	"github.com/axatol/home-assistant-integrations/pkg/broker"
 	"github.com/axatol/home-assistant-integrations/pkg/config"
 	"github.com/axatol/home-assistant-integrations/pkg/provider"
 	"github.com/axatol/home-assistant-integrations/pkg/server"
@@ -18,84 +17,96 @@ import (
 
 func init() {
 	config.Configure()
-	log.Debug().Fields(config.Values()).Send()
+
+	log.Debug().
+		Any("config", config.Values).
+		Send()
+
+	log.Info().
+		Str("build_commit", config.BuildCommit).
+		Str("build_time", config.BuildTime).
+		Str("build_version", config.BuildVersion).
+		Msg("starting")
 }
 
 func main() {
-	ctx, cancel := context.WithCancelCause(context.Background())
+	ctx := context.Background()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
 
-	sigs := make(chan os.Signal, 2)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		sig := <-sigs
-		cancel(fmt.Errorf("received signal %s", sig))
-	}()
+	sig := make(chan os.Signal, 2)
+	signal.Notify(sig, os.Interrupt, os.Kill)
 
-	mux := server.Configure()
-	server := http.Server{Handler: mux.Router, Addr: fmt.Sprintf(":%d", config.ListenPort)}
-	go func() {
-		log.Info().Msgf("listening on %s", server.Addr)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			cancel(fmt.Errorf("server closed unexpectedly: %s", err))
+	log.Debug().Msg("configuring mqtt broker")
+	mqtt, err := broker.NewMQTTBroker(config.Values.MQTTURI, nil)
+	if err != nil {
+		log.Fatal().Err(fmt.Errorf("failed to create broker: %s", err)).Send()
+	}
+
+	log.Debug().Msg("configuring providers")
+	if err := provider.Configure(ctx); err != nil {
+		log.Fatal().Err(fmt.Errorf("failed to configure providers: %s", err)).Send()
+	}
+
+	for _, provider := range provider.Providers {
+		provider := provider
+		log := log.With().Str("provider", provider.Name()).Logger()
+		log.Debug().Msg("announcing provider configuration")
+
+		for topic, config := range provider.Schema() {
+			if err := mqtt.Publish(topic, config, broker.WithMQTTRetained(true)); err != nil {
+				log.Fatal().Str("topic", topic).Err(fmt.Errorf("failed to publish schema: %s", err)).Send()
+			}
 		}
-	}()
 
-	log.Trace().Msg("configuring providers")
-	if err := provider.Configure(ctx, config.ProviderConfig); err != nil {
-		cancel(fmt.Errorf("failed to configure providers: %s", err))
+		log.Debug().Msg("subscribing to provider updates")
+		go mqtt.Listen(ctx, provider.Subscribe(ctx))
 	}
 
-	log.Trace().Msg("adding configured providers to probe targets")
-	for _, v := range provider.ConfiguredProviders {
-		mux.AddProbeTarget(v)
+	log.Debug().Msg("configuring server")
+	mux := server.Configure()
+	server := http.Server{
+		Handler: mux.Router,
+		Addr:    fmt.Sprintf(":%d", config.Values.ListenPort),
 	}
+
+	for _, provider := range provider.Providers {
+		log.Debug().Str("provider", provider.Name()).Msg("adding provider as probe target")
+		mux.AddProbeTarget(provider)
+	}
+
+	log.Info().Msgf("listening on %s", server.Addr)
+	go server.ListenAndServe()
 
 	select {
-	case sig := <-sigs:
-		log.Error().Err(fmt.Errorf("received signal %s", sig)).Send()
+	case s := <-sig:
+		log.Info().Str("signal", s.String()).Msg("received signal, shutting down gracefully")
+		cancel(nil)
 	case <-ctx.Done():
 		if err := context.Cause(ctx); err != nil && err != context.Canceled {
 			log.Error().Err(err).Msg("shutting down gracefully")
 		} else {
-			log.Info().Err(err).Msg("shutting down gracefully")
+			log.Info().Msg("shutting down gracefully")
 		}
 	}
 
 	ctx, cancel = context.WithCancelCause(context.Background())
-	wg := sync.WaitGroup{}
+	defer cancel(nil)
 
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
-		log.Trace().Msg("shutting down server")
 		if err := server.Shutdown(ctx); err != nil && err != http.ErrServerClosed {
-			log.Error().Err(fmt.Errorf("failed to shut down server: %s", err)).Send()
+			cancel(fmt.Errorf("failed to shut down server gracefully: %s", err))
+		} else {
+			cancel(nil)
 		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for name, provider := range provider.ConfiguredProviders {
-			log.Trace().Str("provider", name).Msg("shutting down provider")
-			if err := provider.Close(); err != nil {
-				log.Error().Err(fmt.Errorf("failed to shut down provider: %s", err)).Send()
-			}
-		}
-	}()
-
-	go func() {
-		wg.Wait()
-		log.Trace().Msg("graceful shutdown complete")
-		cancel(nil)
 	}()
 
 	select {
 	case <-time.After(time.Second * 5):
 		log.Error().Err(fmt.Errorf("failed to shut down gracefully: timed out")).Send()
 		os.Exit(1)
-	case sig := <-sigs:
-		log.Error().Err(fmt.Errorf("failed to shut down gracefully: received signal %s", sig)).Send()
+	case s := <-sig:
+		log.Error().Str("signal", s.String()).Err(fmt.Errorf("failed to shut down gracefully: received signal")).Send()
 		os.Exit(1)
 	case <-ctx.Done():
 		if err := context.Cause(ctx); err != nil && err != context.Canceled {

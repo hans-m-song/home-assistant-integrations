@@ -2,18 +2,13 @@ package broker
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"strings"
+	"math/rand/v2"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/rs/zerolog/log"
-)
-
-const (
-	clientIDMaxLength = 23
 )
 
 func init() {
@@ -30,7 +25,7 @@ var (
 type mqttLogger struct{ level string }
 
 func (l mqttLogger) Println(v ...interface{}) {
-	log := log.Trace().Str("namespace", "mqtt").Str("level", l.level)
+	log := log.Trace().Str("namespace", "mqtt").Str("lvl", l.level)
 	for _, item := range v {
 		log = log.Interface("item", item)
 	}
@@ -55,35 +50,18 @@ type LastWill struct {
 	Payload any
 }
 
-type mqttBrokerImpl struct {
-	clientID string
-	client   mqtt.Client
-}
-
-func generateClientID(purpose string) string {
-	clientID := strings.Builder{}
-	clientID.WriteString("hass_")
-	if len(purpose) > 16 {
-		purpose = purpose[:16]
-	}
-	clientID.WriteString(purpose)
-	clientID.WriteString("_")
-	id := make([]byte, clientIDMaxLength-clientID.Len())
-	if _, err := rand.Read(id); err != nil {
-		log.Warn().Err(fmt.Errorf("failed to generate unique portion of client id: %s", err)).Send()
-	}
-	clientID.Write(id)
-	return clientID.String()
+type Broker struct {
+	client mqtt.Client
 }
 
 // NewBroker creates a new MQTT broker.
 //
 // addr must be a fully qualified URI, e.g. tcp://localhost:1883.
 //
-// purpose will be cut to 16 characters to generate a client id in the form
-// `hai_<purpose>_<at least 3 random bytes>`.
-func NewMQTTBroker(addr, purpose string, will *LastWill) (Broker, error) {
-	clientID := generateClientID(purpose)
+// clientID will be cut to 24 characters
+func NewMQTTBroker(addr string, will *LastWill) (*Broker, error) {
+	clientID := fmt.Sprintf("hass_int_%d", rand.Int64())[:24]
+
 	opts := mqtt.NewClientOptions().
 		AddBroker(addr).
 		SetClientID(clientID).
@@ -105,41 +83,78 @@ func NewMQTTBroker(addr, purpose string, will *LastWill) (Broker, error) {
 		return nil, fmt.Errorf("failed to connect: %s", err)
 	}
 
-	return &mqttBrokerImpl{clientID, client}, nil
+	return &Broker{client}, nil
 }
 
-func (b *mqttBrokerImpl) Name() string {
-	return fmt.Sprintf("broker:mqtt:%s", b.clientID)
-}
-
-func (b *mqttBrokerImpl) Health(ctx context.Context) (map[string]any, error) {
-	if !b.client.IsConnected() {
-		return nil, fmt.Errorf("not connected")
-	}
-
-	return map[string]any{"connected": true}, nil
-}
-
-func (b *mqttBrokerImpl) Disconnect(deadline time.Duration) error {
+func (b *Broker) Disconnect(deadline time.Duration) error {
 	b.client.Disconnect(uint(deadline.Milliseconds()))
 	return nil
 }
 
-func (b *mqttBrokerImpl) Publish(topic string, payload any) error {
-	raw, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %s", err)
+type Payload struct {
+	Topic string
+	Data  any
+}
+
+func (b *Broker) Listen(ctx context.Context, source <-chan Payload) {
+	for payload := range source {
+		if err := b.Publish(payload.Topic, payload.Data); err != nil {
+			log.Error().Any("payload", payload).Msg("failed to publish")
+		}
+	}
+}
+
+type MQTTPublishOptions struct {
+	QoS      byte
+	Retained bool
+}
+
+func WithMQTTQoS(qos byte) func(*MQTTPublishOptions) {
+	return func(o *MQTTPublishOptions) { o.QoS = qos }
+}
+
+func WithMQTTRetained(retained bool) func(*MQTTPublishOptions) {
+	return func(o *MQTTPublishOptions) { o.Retained = retained }
+}
+
+func (b *Broker) Publish(topic string, payload any, options ...func(*MQTTPublishOptions)) error {
+	opts := &MQTTPublishOptions{QoS: 1, Retained: false}
+	for _, opt := range options {
+		opt(opts)
 	}
 
-	if err := handleMQTTToken(b.client.Publish(topic, 1, false, raw)); err != nil {
+	var (
+		raw []byte
+		err error
+	)
+
+	if str, ok := payload.(string); ok {
+		raw = []byte(str)
+	} else {
+		raw, err = json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal payload: %s", err)
+		}
+	}
+
+	log.Trace().
+		Str("namespace", "mqtt").
+		Str("topic", topic).
+		Str("payload", string(raw)).
+		Msg("publishing message")
+
+	token := b.client.Publish(topic, opts.QoS, opts.Retained, raw)
+	if err := handleMQTTToken(token); err != nil {
 		return fmt.Errorf("failed to publish to %s: %s", topic, err)
 	}
 
 	return nil
 }
 
-func (b *mqttBrokerImpl) Subscribe(topic string, handler func(topic string, payload any)) error {
-	if err := handleMQTTToken(b.client.Subscribe(topic, 1, func(c mqtt.Client, m mqtt.Message) { handler(m.Topic(), m.Payload()) })); err != nil {
+func (b *Broker) Subscribe(topic string, handler func(topic string, payload any)) error {
+	callback := func(c mqtt.Client, m mqtt.Message) { handler(m.Topic(), m.Payload()) }
+	token := b.client.Subscribe(topic, 1, callback)
+	if err := handleMQTTToken(token); err != nil {
 		return fmt.Errorf("failed to subscribe to topic %s: %s", topic, err)
 	}
 

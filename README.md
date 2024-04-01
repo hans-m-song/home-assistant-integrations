@@ -2,8 +2,8 @@
 
 ## Integrations
 
-- Zever Solar Evershine TLC5000 Solar Inverter
 - Huawei HG659 Router
+- Zever Solar Evershine TLC5000 Solar Inverter
 
 ## Deployment
 
@@ -16,18 +16,41 @@ docker run -d home-assistant-integrations
 
 ### Kubernetes
 
-Refer to the manifests folder for a kubernetes deployment.
+```bash
+helm add repo home-assistant-integrations https://home-assistant-integrations.charts.axatol.xyz
+helm repo update
+helm upgrade \
+  home-assistant-integrations \
+  home-assistant-integrations/home-assistant-integrations
+  --install \
+  --create-namespace \
+  --atomic \
+  --namespace home-assistant \
+  --set providers.huaweiHg659.enabled=true \
+  --set providers.huaweiHg659.address=http://192.168.1.1 \
+  --set providers.huaweiHg659.enabled=true \
+  --set providers.huaweiHg659.address=http://192.168.1.44
 
 ## Configuration
 
-Environment variables:
+### Server
 
-- `ZEVERSOLAR_TLC5000_ENDPOINT`: inverter network address to pull data from (default: `http://192.168.1.44/home.cgi`), leave empty to disable
-- `ZEVERSOLAR_POLL_RATE`: delay between poll attempts in milliseconds (default: `5000`)
-- `HUAWEI_HG659_ENDPOINT`: router admin portal address to pull data from (most likely `http://192.168.1.1/home.cgi`), leave empty to disable
-- `HUAWEI_HG659_POLL_RATE`: delay between poll attempts in milliseconds (default: `5000`)
-- `MQTT_ENDPOINT`: mqtt address to submit data to (**required**)
-- `MQTT_USER`: mqtt instance username
-- `MQTT_PASS`: mqtt instance password
-- `MQTT_ANNOUNCE_RATE`: interval to announce integrations to mqtt broker (default: `60000`)
-- `HTTP_PORT`: server stub listening port (default: `8000`, max: `65536`)
+- `LOG_LEVEL` Zerolog log level (default: `info`)
+- `LOG_FORMAT` Zerolog log format (default: `json`)
+- `LISTEN_PORT` Server listen port (default: `8080`)
+- `MQTT_URI` Broker address (required)
+
+### Huawei HG659
+
+- `HUAWEI_HG659_ENABLED` (default: `false`)
+- `HUAWEI_HG659_ADDRESS` (required if enabled)
+- `HUAWEI_HG659_ENTITY_NAME` (default: `huawei_hg659`)
+- `HUAWEI_HG659_POLL_RATE` (default: `60s`)
+
+### ZeverSolar TLC5000
+
+- `ZEVER_SOLAR_TLC5000_ENABLED` (default: `false`)
+- `ZEVER_SOLAR_TLC5000_ADDRESS` (required if enabled)
+- `ZEVER_SOLAR_TLC5000_ENTITY_NAME` (default: `zever_solar_tlc5000`)
+- `ZEVER_SOLAR_TLC5000_POLL_RATE` (default: `30s`)
+```

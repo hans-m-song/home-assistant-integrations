@@ -36,8 +36,11 @@ func Configure(probeTargets ...ProbeTarget) *Mux {
 		probeTargets: probeTargets,
 	}
 
-	router.Get("/live", server.livenessProbe)
-	router.Get("/ready", server.readinessProbe)
+	router.Group(func(r chi.Router) {
+		r.Use(middlewareContentType("application/json"))
+		r.Get("/readyz", server.readinessProbe)
+	})
+
 	return &server
 }
 
@@ -46,11 +49,6 @@ func (server *Mux) AddProbeTarget(target ProbeTarget) *Mux {
 	defer server.mu.Unlock()
 	server.probeTargets = append(server.probeTargets, target)
 	return server
-}
-
-func (server *Mux) livenessProbe(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
 }
 
 type metadataItem struct {
@@ -66,7 +64,8 @@ func (server *Mux) readinessProbe(w http.ResponseWriter, r *http.Request) {
 	server.mu.RLock()
 	for _, target := range server.probeTargets {
 		wg.Add(1)
-		go func(target ProbeTarget) {
+		target := target
+		go func() {
 			defer wg.Done()
 			name := target.Name()
 			data, err := target.Health(r.Context())
@@ -78,16 +77,10 @@ func (server *Mux) readinessProbe(w http.ResponseWriter, r *http.Request) {
 				Healthy: err == nil,
 				Data:    data,
 			}
-		}(target)
+		}()
 	}
 	wg.Wait()
 	server.mu.RUnlock()
-
-	if len(errors) > 0 {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		log.Error().Any("errors", errors).Any("metadata", metadata).Send()
-		return
-	}
 
 	raw, err := json.Marshal(metadata)
 	if err != nil {
@@ -96,6 +89,12 @@ func (server *Mux) readinessProbe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(errors) > 0 {
+		log.Error().Any("errors", errors).Any("metadata", metadata).Send()
+	}
+
 	w.WriteHeader(http.StatusOK)
-	w.Write(raw)
+	if _, err := w.Write(raw); err != nil {
+		log.Error().Err(err).Msg("failed to write response")
+	}
 }

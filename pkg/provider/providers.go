@@ -4,47 +4,60 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/axatol/home-assistant-integrations/pkg/broker"
+	"github.com/axatol/home-assistant-integrations/pkg/config"
+	"github.com/axatol/home-assistant-integrations/pkg/homeassistant"
 	"github.com/rs/zerolog/log"
+)
+
+const (
+	PROVIDER_SINK_BUFFER_SIZE = 50
 )
 
 type Provider interface {
 	// Name returns the name of the provider.
 	Name() string
-	// Configure initialises and configures with options.
-	Configure(options map[string]any) error
+	// Configure gives the provider a chance to initialise and configure clients.
+	Configure() error
+	// Schema returns the entity configuration to announce to Home Assistant.
+	Schema() map[string]homeassistant.EntityConfiguration
 	// Health checks for errors and responds with provider metadata.
 	Health(ctx context.Context) (map[string]any, error)
-	// Close closes the provider.
-	Close() error
+	// Subscribe produces a channel for the manager to listen to.
+	Subscribe(ctx context.Context) <-chan broker.Payload
 }
 
 var (
-	Providers = map[string]Provider{
-		"advantage_air_hub": &AdvantageAirHubProvider{},
+	deviceOrigin = homeassistant.EntityOrigin{
+		Name:            "Home Assistant Integrations",
+		SupportURL:      "https://github.com/axatol/home-assistant-integrations/issues",
+		SoftwareVersion: config.BuildVersion,
 	}
 
-	ConfiguredProviders = map[string]Provider{}
+	AvailableProviders = []Provider{
+		new(HuaweiHG659Provider),
+		new(ZeverSolarTLC5000Provider),
+	}
+
+	Providers = []Provider{}
 )
 
-func Configure(ctx context.Context, configs map[string]map[string]any) error {
-	for name, config := range configs {
+func Configure(ctx context.Context) error {
+	for _, provider := range AvailableProviders {
+		name := provider.Name()
 		log.Debug().Msgf("configuring provider %s", name)
 
-		provider, ok := Providers[name]
-		if !ok {
-			log.Warn().Err(fmt.Errorf("unknown provider: %s", name)).Send()
-			continue
-		}
-
-		if err := provider.Configure(config); err != nil {
+		if err := provider.Configure(); err != nil {
 			return fmt.Errorf("failed to configure provider %s: %s", name, err)
 		}
 
-		if _, err := provider.Health(ctx); err != nil {
-			return fmt.Errorf("failed to health check provider %s: %s", name, err)
+		schema := provider.Schema()
+		if schema == nil {
+			log.Info().Msgf("skipping disabled provider %s", name)
+			continue
 		}
 
-		ConfiguredProviders[name] = provider
+		Providers = append(Providers, provider)
 	}
 
 	return nil

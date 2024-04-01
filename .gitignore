@@ -3,3 +3,7 @@ dist
 .env
 .dccache
 config.yaml
+.DS_Store
+
+dist/
+__debug_*

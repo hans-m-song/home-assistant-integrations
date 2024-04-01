@@ -28,3 +28,7 @@ func GetByKey[Value any, Key comparable](data map[Key]any, key Key) (Value, erro
 
 	return val, nil
 }
+
+func Ptr[T any](input T) *T {
+	return &input
+}
