@@ -16,19 +16,19 @@ type Availability struct {
 
 // https://www.home-assistant.io/integrations/sensor.mqtt/
 type EntityConfiguration struct {
-	Name              string            `json:"name"`
-	UniqueID          string            `json:"unique_id"`
-	ValueTemplate     *string           `json:"value_template,omitempty"`
-	StateTopic        string            `json:"state_topic"`
-	StateClass        *string           `json:"state_class,omitempty"`
-	LastReset         *string           `json:"last_reset,omitempty"`
-	DeviceClass       *string           `json:"device_class,omitempty"`
-	UnitOfMeasurement *string           `json:"unit_of_measurement,omitempty"`
-	EntityCategory    *string           `json:"entity_category,omitempty"`
-	Origin            EntityOrigin      `json:"origin,omitempty"`
-	Device            DeviceInformation `json:"device"`
-	AvailabilityMode  *string           `json:"availability_mode,omitempty"`
-	Availability      []Availability    `json:"availability,omitempty"`
+	Name              string             `json:"name"`
+	UniqueID          string             `json:"unique_id"`
+	ValueTemplate     string             `json:"value_template,omitempty"`
+	StateTopic        string             `json:"state_topic"`
+	StateClass        string             `json:"state_class,omitempty"`
+	LastReset         string             `json:"last_reset,omitempty"`
+	DeviceClass       string             `json:"device_class,omitempty"`
+	UnitOfMeasurement string             `json:"unit_of_measurement,omitempty"`
+	EntityCategory    string             `json:"entity_category,omitempty"`
+	Origin            *EntityOrigin      `json:"origin,omitempty"`
+	Device            *DeviceInformation `json:"device,omitempty"`
+	AvailabilityMode  string             `json:"availability_mode,omitempty"`
+	Availability      []Availability     `json:"availability,omitempty"`
 }
 
 type EntityOrigin struct {

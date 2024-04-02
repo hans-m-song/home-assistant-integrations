@@ -50,4 +50,6 @@ func Configure() {
 	default:
 		panic(fmt.Errorf("unknown log format: %s", Values.LogFormat))
 	}
+
+	zerolog.DefaultContextLogger = &log.Logger
 }

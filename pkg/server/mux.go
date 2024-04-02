@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -95,6 +96,6 @@ func (server *Mux) readinessProbe(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(raw); err != nil {
-		log.Error().Err(err).Msg("failed to write response")
+		log.Error().Err(fmt.Errorf("failed to write response: %s", err)).Send()
 	}
 }

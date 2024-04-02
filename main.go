@@ -10,6 +10,7 @@ import (
 
 	"github.com/axatol/home-assistant-integrations/pkg/broker"
 	"github.com/axatol/home-assistant-integrations/pkg/config"
+	"github.com/axatol/home-assistant-integrations/pkg/homeassistant"
 	"github.com/axatol/home-assistant-integrations/pkg/provider"
 	"github.com/axatol/home-assistant-integrations/pkg/server"
 	"github.com/rs/zerolog/log"
@@ -38,7 +39,7 @@ func main() {
 	signal.Notify(sig, os.Interrupt, os.Kill)
 
 	log.Debug().Msg("configuring mqtt broker")
-	mqtt, err := broker.NewMQTTBroker(config.Values.MQTTURI, nil)
+	mqtt, err := broker.NewBroker(config.Values.MQTTURI)
 	if err != nil {
 		log.Fatal().Err(fmt.Errorf("failed to create broker: %s", err)).Send()
 	}
@@ -48,19 +49,9 @@ func main() {
 		log.Fatal().Err(fmt.Errorf("failed to configure providers: %s", err)).Send()
 	}
 
-	for _, provider := range provider.Providers {
-		provider := provider
-		log := log.With().Str("provider", provider.Name()).Logger()
-		log.Debug().Msg("announcing provider configuration")
-
-		for topic, config := range provider.Schema() {
-			if err := mqtt.Publish(topic, config, broker.WithMQTTRetained(true)); err != nil {
-				log.Fatal().Str("topic", topic).Err(fmt.Errorf("failed to publish schema: %s", err)).Send()
-			}
-		}
-
-		log.Debug().Msg("subscribing to provider updates")
-		go mqtt.Listen(ctx, provider.Subscribe(ctx))
+	log.Debug().Msg("starting providers")
+	if err := provider.Start(ctx, mqtt); err != nil {
+		log.Fatal().Err(fmt.Errorf("failed to start providers: %s", err)).Send()
 	}
 
 	log.Debug().Msg("configuring server")
@@ -84,10 +75,14 @@ func main() {
 		cancel(nil)
 	case <-ctx.Done():
 		if err := context.Cause(ctx); err != nil && err != context.Canceled {
-			log.Error().Err(err).Msg("shutting down gracefully")
+			log.Error().Err(fmt.Errorf("shutting down gracefully: %s", err)).Send()
 		} else {
 			log.Info().Msg("shutting down gracefully")
 		}
+	}
+
+	if err := mqtt.Publish(ctx, homeassistant.BRIDGE_AVAILABILITY_TOPIC, "offline"); err != nil {
+		log.Error().Err(fmt.Errorf("failed to set bridge availability to offline: %s", err)).Send()
 	}
 
 	ctx, cancel = context.WithCancelCause(context.Background())

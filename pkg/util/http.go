@@ -59,7 +59,7 @@ func (t *LogRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	if resp == nil {
-		log.Error().Msg("response is nil")
+		log.Trace().AnErr("response_err", fmt.Errorf("response is nil")).Send()
 		return resp, err
 	}
 
