@@ -1,0 +1,56 @@
+on:
+  workflow_call:
+    inputs:
+      publish:
+        description: Whether or not to publish the chart
+        type: boolean
+    outputs:
+      chart_version:
+        value: ${{ jobs.publish_chart.outputs.chart_version }}
+
+jobs:
+  publish_chart:
+    runs-on:
+      - self-hosted
+
+    outputs:
+      chart_version: ${{ steps.version.outputs.chart_version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - id: version
+        run: |
+          chart_version=$(yq '.version' ./charts/home-assistant-integrations/Chart.yaml)
+          echo chart_version=$chart_version >> $GITHUB_OUTPUT
+
+      - id: package
+        env:
+          chart_version: ${{ steps.version.outputs.chart_version }}
+        run: |
+          helm package ./charts/home-assistan-integrations
+          old_filepath=home-assistant-integrations-$chart_version.tgz
+          new_filepath=home-assistant-integrations.$chart_version.tgz
+          mv $old_filepath $new_filepath
+          echo "filepath=$new_filepath" | tee -a $GITHUB_OUTPUT
+
+      - uses: OctopusDeploy/login@v1
+        if: inputs.publish == true
+        with:
+          server: ${{ vars.OCTOPUS_DEPLOY_SERVER_URL }}
+          service_account_id: ${{ vars.OCTOPUS_DEPLOY_EXTERNAL_ID }}
+
+      - uses: OctopusDeploy/push-package-action@v3
+        if: inputs.publish == true
+        with:
+          packages: ${{ steps.package.outputs.filepath }}
+          overwrite_mode: FailIfExists
+
+      - uses: OctopusDeploy/push-build-information-action@v3
+        if: inputs.publish == true
+        with:
+          packages: ${{ vars.OCTOPUS_DEPLOY_CHART_PACKAGE_ID }}
+          version: ${{ steps.version.outputs.chart_version }}
+          overwrite_mode: FailIfExists

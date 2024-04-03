@@ -1,0 +1,71 @@
+on:
+  workflow_call:
+    inputs:
+      publish:
+        description: Whether or not to publish the image
+        type: boolean
+        default: false
+    outputs:
+      image_tag:
+        value: ${{ jobs.publish_image.outputs.image_tag }}
+
+env:
+  IMAGE: public.ecr.aws/axatol/home-assistant-integrations
+
+jobs:
+  publish_image:
+    runs-on:
+      - self-hosted
+
+    outputs:
+      image_tag: ${{ steps.version.outputs.image_tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - id: version
+        run: |
+          image_tag=$(yq '.appVersion' ./charts/home-assistant-integrations/Chart.yaml)
+          echo image_tag=$image_tag >> $GITHUB_OUTPUT
+
+      - env:
+          image: ${{ env.IMAGE }}
+          tag: ${{ steps.version.outputs.image_tag }}
+        run: |
+          make build-image IMAGE_NAME=$image BUILD_VERSION=$tag
+          docker tag $image:$tag $image:latest
+
+      - if: inputs.publish == true
+        env:
+          image: ${{ env.IMAGE }}
+          tag: ${{ steps.version.outputs.image_tag }}
+        run: |
+          docker push $image:$tag
+          docker push $image:latest
+
+      - uses: axatol/actions/assume-aws-role@release
+        if: inputs.publish == true
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_ECR_IMAGE_PUBLISHER_ROLE_ARN }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        if: inputs.publish == true
+        with:
+          registry-type: public
+          mask-password: true
+
+      - uses: OctopusDeploy/login@v1
+        if: inputs.publish == true
+        with:
+          server: ${{ vars.OCTOPUS_DEPLOY_SERVER_URL }}
+          service_account_id: ${{ vars.OCTOPUS_DEPLOY_EXTERNAL_ID }}
+
+      - uses: OctopusDeploy/push-build-information-action@v3
+        if: inputs.publish == true
+        with:
+          packages: ${{ vars.OCTOPUS_DEPLOY_IMAGE_PACKAGE_ID }}
+          version: ${{ steps.version.outputs.image_tag }}
+          overwrite_mode: FailIfExists

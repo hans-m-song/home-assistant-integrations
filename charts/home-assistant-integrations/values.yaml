@@ -1,0 +1,31 @@
+# -- log level for the application, (e.g. trace, error)
+logLevel: info
+# -- log format for the application, (e.g. json, text)
+logFormat: json
+# -- uri of the mqtt broker to publish data to
+mqttUri: ""
+
+image:
+  repository: public.ecr.aws/axatol/home-assistant-integrations
+  # -- image tag, defaults to the chart's appVersion
+  tag: ""
+
+providers:
+  huaweiHg659:
+    # -- enable the provider
+    enabled: false
+    # -- router address
+    address: ""
+    # -- id of entity in home assistant
+    entityName: huawei_hg659
+    # -- poll rate for the provider
+    pollRate: 60s
+  zeverSolarTlc5000:
+    # -- enable the provider
+    enabled: false
+    # -- zever solar inverter address
+    address: ""
+    # -- id of entity in home assistant
+    entityName: ""
+    # -- poll rate for the provider
+    pollRate: 30s

@@ -1,0 +1,33 @@
+name: Test
+
+on: workflow_call
+
+jobs:
+  test:
+    runs-on:
+      - self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Template
+        run: |
+          helm template ./charts/home-assistant-integrations \
+            --set mqttUri tcp://localhost:1883 \
+            --debug
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./go.mod
+          cache: false
+
+      - name: Check
+        run: |
+          go vet ./...
+          go test -v ./...
+
+      - uses: golangci/golangci-lint-action@v4
+        with:
+          skip-cache: true

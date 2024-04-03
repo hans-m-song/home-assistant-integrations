@@ -1,0 +1,30 @@
+on:
+  push:
+    branches:
+      - v2
+    paths-ignore:
+      - "**/*.md"
+      - "**/*.sh"
+      - LICENSE
+
+jobs:
+  publish_image:
+    uses: ./.github/workflows/_publish_image.yaml
+    with:
+      publish: true
+
+  publish_chart:
+    uses: ./.github/workflows/_publish_chart.yaml
+    with:
+      publish: true
+
+  release:
+    name: >-
+      Release
+      ${{ needs.publish_image.outputs.image_tag }}
+      (${{ needs.publish_chart.outputs.chart_version }})
+    needs: [publish_image, publish_chart]
+    uses: ./.github/workflows/_release.yaml
+    with:
+      chart_version: ${{ github.sha }}
+      image_tag: ${{ github.sha }}

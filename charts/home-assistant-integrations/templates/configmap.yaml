@@ -1,0 +1,28 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}
+  labels: {{- include "home-assistant-integrations.labels" . | nindent 4 }}
+data:
+  LOG_LEVEL: {{ .Values.logLevel }}
+  LOG_FORMAT: {{ .Values.logFormat }}
+  MQTT_URI: {{ .Values.mqttUri | required ".Values.mqttUri is required" }}
+
+  {{- with .Values.providers.huaweiHg659 }}
+  {{- if .enabled }}
+  HUAWEI_HG659_ENABLED: true
+  HUAWEI_HG659_ADDRESS: {{ .address | required ".Values.huaweiHg659.address is required"}}
+  HUAWEI_HG659_ENTITY_NAME: {{ .entityName }}
+  HUAWEI_HG659_POLL_RATE: {{ .pollRate }}
+  {{- end }}
+  {{- end }}
+
+  {{- with .Values.providers.zeverSolarTlc5000 }}
+  {{- if .enabled }}
+  ZEVER_SOLAR_TLC5000_ENABLED: true
+  ZEVER_SOLAR_TLC5000_ADDRESS: {{ .address | required ".Values.zeverSolarTlc5000.address is required" }}
+  ZEVER_SOLAR_TLC5000_ENTITY_NAME: {{ .entityName }}
+  ZEVER_SOLAR_TLC5000_POLL_RATE: {{ .pollRate }}
+  {{- end }}
+  {{- end }}

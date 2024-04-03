@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      chart_version:
+        description: The version of the chart to release
+        type: string
+        required: true
+      image_tag:
+        description: The tag of the image to release
+        type: string
+        required: true
+
+jobs:
+  release:
+    runs-on:
+      - self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - uses: OctopusDeploy/login@v1
+        with:
+          server: ${{ vars.OCTOPUS_DEPLOY_SERVER_URL }}
+          service_account_id: ${{ vars.OCTOPUS_DEPLOY_EXTERNAL_ID}}
+
+      - uses: OctopusDeploy/create-release-action@v3
+        id: release
+        with:
+          project: ${{ vars.OCTOPUS_DEPLOY_PROJECT }}
+          packages: |
+            *:image:${{ inputs.image_tag }}
+            *:chart:${{ inputs.chart_version }}
+
+      - uses: OctopusDeploy/deploy-release-action@v3
+        id: deploy
+        with:
+          project: ${{ vars.OCTOPUS_DEPLOY_PROJECT }}
+          environments: Production
+          release_number: ${{ steps.release.outputs.release_number }}
+
+      - uses: OctopusDeploy/await-task-action@v3
+        with:
+          server_task_id: ${{ fromJson(steps.deploy.outputs.server_tasks)[0].serverTaskId }}
